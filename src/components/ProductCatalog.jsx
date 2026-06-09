@@ -3,9 +3,9 @@ import { BOLOS, DOCINHOS, CAIXAS_MISTAS } from '../data/catalog'
 import ProductCard from './ProductCard'
 
 const TABS = [
-  { id: 'bolos', label: '🎂 Bolos por Quilo' },
-  { id: 'docinhos', label: '🍫 Docinhos Individuais' },
-  { id: 'caixas', label: '🎁 Caixas Mistas' },
+  { id: 'bolos', label: '🎂 Bolo de Festa' },
+  { id: 'docinhos', label: '🍫 Docinhos' },
+  { id: 'kits', label: '🎁 Kits de Festa' },
 ]
 
 export default function ProductCatalog({ onConfigure }) {
@@ -45,31 +45,21 @@ export default function ProductCatalog({ onConfigure }) {
 
         {/* Bolos */}
         {activeTab === 'bolos' && (
-          <div>
-            <div className="bg-gold/10 border border-gold/30 rounded-xl px-5 py-3 mb-8 flex items-start gap-3">
-              <span className="text-gold text-xl mt-0.5">ⓘ</span>
-              <p className="font-sans text-sm text-gray-600">
-                <strong className="text-marsala">Apenas Naked Cakes.</strong> De ter. a sex., produzimos exclusivamente o modelo Naked Cake Padrão.
-                Bolos confeitados/personalizados estão disponíveis <strong>somente aos sábados</strong>.
-                Pedido mínimo: 1,6 kg.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {BOLOS.map(bolo => (
-                <ProductCard
-                  key={bolo.id}
-                  product={bolo}
-                  type="bolo"
-                  onConfigure={(p) => onConfigure(p, 'bolo')}
-                />
-              ))}
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {BOLOS.map(bolo => (
+              <ProductCard
+                key={bolo.id}
+                product={bolo}
+                type="bolo"
+                onConfigure={(p) => onConfigure(p, 'bolo')}
+              />
+            ))}
           </div>
         )}
 
         {/* Docinhos */}
         {activeTab === 'docinhos' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
             {DOCINHOS.map(doce => (
               <ProductCard
                 key={doce.id}
@@ -81,20 +71,26 @@ export default function ProductCatalog({ onConfigure }) {
           </div>
         )}
 
-        {/* Caixas Mistas */}
-        {activeTab === 'caixas' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {CAIXAS_MISTAS.map(cx => (
-              <ProductCard
-                key={cx.id}
-                product={cx}
-                type="caixa"
-                onConfigure={(p) => onConfigure(p, 'caixa')}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  )
-}
+        {/* Kits de Festa */}
+        {activeTab === 'kits' && (
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            {/* Single photo on left */}
+            <div className="w-full md:w-2/5 flex-shrink-0">
+              <div className="overflow-hidden rounded-2xl aspect-[4/3]">
+                <img
+                  src="/images/brownie-morango.png"
+                  alt="Kits de Festa Camila Andrade Confeitaria"
+                  className="w-full h-full object-cover"
+                  onError={e => {
+                    e.target.src = '/logo-submake.png'
+                    e.target.className = 'w-full h-full object-contain p-8 opacity-30'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Kit options on right */}
+            <div className="flex-1">
+              <h3 className="font-serif text-2xl text-marsala font-semibold mb-2">Kits de Festa</h3>
+              <p className="font-sans text-sm text-gray-500 mb-6 leading-relaxed">
+                Caixas mistas com doces artesanais. Escolha a quantidade e

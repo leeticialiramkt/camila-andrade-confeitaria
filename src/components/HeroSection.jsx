@@ -52,7 +52,7 @@ export default function HeroSection() {
             Ver Catálogo Completo
           </button>
           <a
-            href="https://wa.me/5511945908134"
+            href="https://wa.me/5511945908134?text=Oi%2C+estava+no+site+de+encomenda+da+linha+festa+e+quero+tirar+d%C3%BAvidas."
             target="_blank"
             rel="noopener noreferrer"
             className="bg-white/10 border-2 border-white/70 hover:bg-white/20 text-white font-sans font-bold py-4 px-8 rounded-full text-base transition-all duration-200 backdrop-blur-sm"
@@ -82,9 +82,4 @@ export default function HeroSection() {
         aria-label="Rolar para o catálogo"
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-    </section>
-  )
-}
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWi

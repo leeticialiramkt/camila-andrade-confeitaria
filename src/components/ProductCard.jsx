@@ -1,17 +1,36 @@
 export default function ProductCard({ product, onConfigure, type }) {
   const isBoloCard = type === 'bolo'
   const isCaixaCard = type === 'caixa'
+  const isBolo1kg = isBoloCard && product.isFixedPrice
 
   const getPrice = () => {
     if (isBoloCard) {
+      if (isBolo1kg) return `R$ ${product.preco.toFixed(2).replace('.', ',')}`
+      if (product.saboresPistache?.length) return `a partir de R$ ${product.pricePerKg.toFixed(2).replace('.', ',')}/kg`
       return `R$ ${product.pricePerKg.toFixed(2).replace('.', ',')}/kg`
     }
     if (isCaixaCard) {
       return `R$ ${product.preco.toFixed(2).replace('.', ',')}`
     }
-    // doce - show lowest price
+    // doce
+    if (product.saboresComPreco) {
+      const minPrice = Math.min(...product.saboresComPreco.flatMap(s => Object.values(s.precos)))
+      return `a partir de R$ ${minPrice.toFixed(2).replace('.', ',')}`
+    }
     const minPrice = Math.min(...Object.values(product.precos))
     return `a partir de R$ ${minPrice.toFixed(2).replace('.', ',')}`
+  }
+
+  const getSaboresCount = () => {
+    if (product.sabores) return product.sabores.length
+    if (product.saboresComPreco) return product.saboresComPreco.length
+    return 0
+  }
+
+  const getSaboresPreview = () => {
+    if (product.sabores) return product.sabores
+    if (product.saboresComPreco) return product.saboresComPreco.map(s => s.nome)
+    return []
   }
 
   return (
@@ -24,7 +43,7 @@ export default function ProductCard({ product, onConfigure, type }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
           onError={(e) => {
-            e.target.src = '/logo-marsala.png'
+            e.target.src = '/logo-submake.png'
             e.target.className = 'w-full h-full object-contain p-8 opacity-30'
           }}
         />
@@ -51,35 +70,10 @@ export default function ProductCard({ product, onConfigure, type }) {
         </p>
 
         {/* Sabores preview */}
-        {isBoloCard && (
+        {(isBoloCard || type === 'doce') && getSaboresCount() > 0 && (
           <div className="mb-4">
             <p className="text-xs font-sans text-gray-400 uppercase tracking-wide mb-1.5">
-              {product.sabores.length} sabores disponíveis
+              {getSaboresCount()} sabores disponíveis
             </p>
             <p className="text-xs text-gray-500 line-clamp-2">
-              {product.sabores.slice(0, 4).join(', ')}{product.sabores.length > 4 ? ' e mais...' : ''}
-            </p>
-          </div>
-        )}
-
-        {/* Price + CTA */}
-        <div className="flex items-center justify-between mt-auto pt-3 border-t border-cream">
-          <div>
-            <p className="font-sans text-xs text-gray-400 uppercase tracking-wide">Preço</p>
-            <p className="font-serif text-xl text-marsala font-bold">{getPrice()}</p>
-            {isBoloCard && (
-              <p className="font-sans text-xs text-gray-400">mín. {product.minKg} kg</p>
-            )}
-          </div>
-          <button
-            onClick={() => onConfigure(product)}
-            className="btn-primary text-sm py-2.5 px-5"
-            aria-label={`Configurar ${isBoloCard ? 'Linha ' + product.linha : product.nome}`}
-          >
-            Configurar
-          </button>
-        </div>
-      </div>
-    </article>
-  )
-}
+              {getSaboresPreview().slice(0, 4).join(', ')}{getSaboresCount() > 4 ? ' e mais.

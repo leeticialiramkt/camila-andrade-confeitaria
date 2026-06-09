@@ -7,20 +7,33 @@ export default function ProductModal({ product, type, onClose }) {
   const [config, setConfig] = useState({
     peso: 1.6,
     sabor: '',
-    saborNaked: false,
+    massa: '',
     adicionais: [],
     personalizacao: [],
     quantidade: 25,
     saboresCaixa: [],
+    corForminhas: '',
   })
 
   const isBoloModal = type === 'bolo'
   const isDoceModal = type === 'doce'
   const isCaixaModal = type === 'caixa'
+  const isBolo1kg = isBoloModal && product.isFixedPrice
+  const isDoceEspecial = isDoceModal && !!product.saboresComPreco
 
-  // Pre-select first flavor
+  // Pre-select first option
   useEffect(() => {
     if (isBoloModal && product.sabores?.length > 0) {
+      setConfig(c => ({
+        ...c,
+        sabor: product.sabores[0],
+        massa: isBolo1kg ? product.massa[0] : c.massa,
+      }))
+    }
+    if (isDoceEspecial && product.saboresComPreco?.length > 0) {
+      setConfig(c => ({ ...c, sabor: product.saboresComPreco[0].nome }))
+    }
+    if (isDoceModal && !isDoceEspecial && product.sabores?.length > 0) {
       setConfig(c => ({ ...c, sabor: product.sabores[0] }))
     }
     if (isCaixaModal && product.saboresDisponiveis?.length > 0) {
@@ -28,9 +41,25 @@ export default function ProductModal({ product, type, onClose }) {
     }
   }, [product])
 
+  const getEffectivePricePerKg = () => {
+    if (!isBoloModal || isBolo1kg) return product.pricePerKg || 0
+    if (product.saboresPistache?.includes(config.sabor)) return product.pistachePrice
+    return product.pricePerKg
+  }
+
+  const getDocePrecos = () => {
+    if (isDoceEspecial) {
+      const saborData = product.saboresComPreco.find(s => s.nome === config.sabor)
+      return saborData?.precos || {}
+    }
+    return product.precos || {}
+  }
+
   const calcSubtotal = () => {
     if (isBoloModal) {
-      let base = product.pricePerKg * config.peso
+      if (isBolo1kg) return product.preco || 90
+      const pricePerKg = getEffectivePricePerKg()
+      let base = pricePerKg * config.peso
       const adicionaisTotal = config.adicionais.length > 0 ? config.adicionais.length * 20 * config.peso : 0
       const persTotal = config.personalizacao.reduce((sum, id) => {
         const p = PERSONALIZACOES_BOLO.find(x => x.id === id)
@@ -39,7 +68,8 @@ export default function ProductModal({ product, type, onClose }) {
       return base + adicionaisTotal + persTotal
     }
     if (isDoceModal) {
-      return product.precos[config.quantidade] || 0
+      const precos = getDocePrecos()
+      return precos[config.quantidade] || 0
     }
     if (isCaixaModal) {
       return product.preco || 0
@@ -77,8 +107,11 @@ export default function ProductModal({ product, type, onClose }) {
   }
 
   const canAddToCart = () => {
-    if (isBoloModal) return config.sabor !== '' || config.saborNaked
-    if (isDoceModal) return true
+    if (isBoloModal) {
+      if (isBolo1kg) return config.sabor !== '' && config.massa !== ''
+      return config.sabor !== ''
+    }
+    if (isDoceModal) return config.sabor !== ''
     if (isCaixaModal) return config.saboresCaixa.length === product.numSabores
     return false
   }
@@ -90,16 +123,19 @@ export default function ProductModal({ product, type, onClose }) {
     let cartId = `${product.id}-${Date.now()}`
 
     if (isBoloModal) {
-      const saborFinal = config.saborNaked
-        ? config.sabor
-        : config.sabor
-      const adicionaisLabels = config.adicionais.map(id => ADICIONAIS_BOLO.find(a => a.id === id)?.label).join(', ')
-      const persLabels = config.personalizacao.map(id => PERSONALIZACOES_BOLO.find(p => p.id === id)?.label).join(', ')
-      description = `Naked Cake ${product.linha} — ${saborFinal} — ${config.peso}kg`
-      if (adicionaisLabels) description += ` + ${adicionaisLabels}`
-      if (persLabels) description += ` | ${persLabels}`
+      if (isBolo1kg) {
+        description = `Bolo Padrão 1Kg — Massa ${config.massa} — Recheio: ${config.sabor}`
+      } else {
+        const pricePerKg = getEffectivePricePerKg()
+        const adicionaisLabels = config.adicionais.map(id => ADICIONAIS_BOLO.find(a => a.id === id)?.label).filter(Boolean).join(', ')
+        const persLabels = config.personalizacao.map(id => PERSONALIZACOES_BOLO.find(p => p.id === id)?.label).filter(Boolean).join(', ')
+        description = `Bolo ${product.linha} — ${config.sabor} — ${config.peso}kg (R$ ${pricePerKg}/kg)`
+        if (adicionaisLabels) description += ` + ${adicionaisLabels}`
+        if (persLabels) description += ` | ${persLabels}`
+      }
     } else if (isDoceModal) {
-      description = `${product.nome} — ${config.quantidade} unidades`
+      description = `${product.nome} — ${config.sabor} — ${config.quantidade} unidades`
+      if (config.corForminhas) description += ` | Forminha: ${config.corForminhas}`
     } else if (isCaixaModal) {
       description = `${product.nome} — Sabores: ${config.saboresCaixa.join(', ')}`
     }
@@ -108,7 +144,7 @@ export default function ProductModal({ product, type, onClose }) {
       cartId,
       productId: product.id,
       type,
-      name: isBoloModal ? `Naked Cake ${product.linha}` : product.nome,
+      name: isBoloModal ? `Bolo ${product.linha}` : product.nome,
       description,
       subtotal: calcSubtotal(),
       config: { ...config },
@@ -117,27 +153,28 @@ export default function ProductModal({ product, type, onClose }) {
     onClose()
   }
 
-  const allSabores = isBoloModal
+  const allSabores = isBoloModal && !isBolo1kg
     ? [
-        ...(product.sabores || []).map(s => ({ value: s, label: s, nakedOnly: false })),
-        ...(product.saboresNakedOnly || []).map(s => ({ value: s, label: `${s} ★ (Naked Cake)`, nakedOnly: true })),
+        ...(product.sabores || []).map(s => ({ value: s, label: s })),
+        ...(product.saboresPistache || []).map(s => ({
+          value: s,
+          label: `${s} — R$ ${product.pistachePrice}/kg`,
+        })),
       ]
     : []
 
-  const subtotal = calcSubtotal()
+  const precoAtual = calcSubtotal()
+  const docePrecos = getDocePrecos()
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4"
       role="dialog"
       aria-modal="true"
-      aria-label={`Configurar ${isBoloModal ? 'Bolo' : product.nome}`}
+      aria-label={`Escolher sabores — ${isBoloModal ? product.linha : product.nome}`}
     >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
       <div className="relative bg-offwhite rounded-t-3xl md:rounded-2xl w-full md:max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl">
@@ -149,9 +186,9 @@ export default function ProductModal({ product, type, onClose }) {
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-4 border-b border-cream sticky top-0 bg-offwhite z-10">
           <div>
-            <p className="font-sans text-xs text-gold uppercase tracking-widest font-bold mb-0.5">Configurar</p>
+            <p className="font-sans text-xs text-gold uppercase tracking-widest font-bold mb-0.5">Escolher sabores</p>
             <h3 className="font-serif text-xl text-marsala font-semibold leading-tight">
-              {isBoloModal ? `Naked Cake ${product.linha}` : product.nome}
+              {isBoloModal ? `Bolo ${product.linha}` : product.nome}
             </h3>
           </div>
           <button
@@ -166,8 +203,56 @@ export default function ProductModal({ product, type, onClose }) {
         </div>
 
         <div className="px-6 py-5 space-y-6">
-          {/* === BOLO CONFIG === */}
-          {isBoloModal && (
+
+          {/* === BOLO PADRÃO 1KG === */}
+          {isBolo1kg && (
+            <>
+              <p className="font-sans text-sm text-gray-500 bg-cream rounded-xl p-3 text-center">
+                15cm · até 8 fatias (aprox.) · 1 camada de recheio
+              </p>
+
+              {/* Massa */}
+              <div>
+                <p className="font-sans text-sm font-bold text-gray-700 mb-2">Massa *</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {product.massa.map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setConfig(c => ({ ...c, massa: m }))}
+                      className={`py-3 rounded-xl border-2 text-sm font-sans font-medium transition-all ${
+                        config.massa === m
+                          ? 'border-marsala bg-marsala text-white'
+                          : 'border-gray-200 text-gray-600 hover:border-marsala/40'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recheio */}
+              <div>
+                <label htmlFor="recheio-1kg" className="block font-sans text-sm font-bold text-gray-700 mb-2">
+                  Recheio *
+                </label>
+                <select
+                  id="recheio-1kg"
+                  value={config.sabor}
+                  onChange={e => setConfig(c => ({ ...c, sabor: e.target.value }))}
+                  className="input-field"
+                >
+                  <option value="">Selecione o recheio...</option>
+                  {product.sabores.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* === BOLO POR KG === */}
+          {isBoloModal && !isBolo1kg && (
             <>
               {/* Peso */}
               <div>
@@ -189,22 +274,19 @@ export default function ProductModal({ product, type, onClose }) {
                   >+</button>
                 </div>
                 <p className="text-xs text-gray-400 mt-1.5 text-center">
-                  Aro 15cm · serve ~{Math.round(config.peso * 6)} fatias
+                  ~{Math.round(config.peso * 10)} fatias (aprox.)
                 </p>
               </div>
 
               {/* Sabor */}
               <div>
                 <label htmlFor="sabor-select" className="block font-sans text-sm font-bold text-gray-700 mb-2">
-                  Sabor
+                  Sabor *
                 </label>
                 <select
                   id="sabor-select"
                   value={config.sabor}
-                  onChange={e => {
-                    const opt = allSabores.find(s => s.value === e.target.value)
-                    setConfig(c => ({ ...c, sabor: e.target.value, saborNaked: opt?.nakedOnly || false }))
-                  }}
+                  onChange={e => setConfig(c => ({ ...c, sabor: e.target.value }))}
                   className="input-field"
                 >
                   <option value="">Selecione o sabor...</option>
@@ -212,8 +294,10 @@ export default function ProductModal({ product, type, onClose }) {
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
                 </select>
-                {config.saborNaked && (
-                  <p className="mt-1.5 text-xs text-gold font-medium">★ Este sabor é disponível apenas no modelo Naked Cake Padrão.</p>
+                {product.saboresPistache?.includes(config.sabor) && (
+                  <p className="mt-1.5 text-xs text-gold font-medium">
+                    ★ Sabor Pistache — R$ {product.pistachePrice}/kg
+                  </p>
                 )}
               </div>
 
@@ -297,106 +381,33 @@ export default function ProductModal({ product, type, onClose }) {
           {/* === DOCE CONFIG === */}
           {isDoceModal && (
             <>
-              <div>
-                <p className="font-sans text-sm font-bold text-gray-700 mb-3">Quantidade</p>
-                <div className="grid grid-cols-3 gap-3">
-                  {[25, 50, 100].map(qty => (
-                    product.precos[qty] && (
-                      <button
-                        key={qty}
-                        onClick={() => setConfig(c => ({ ...c, quantidade: qty }))}
-                        className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
-                          config.quantidade === qty
-                            ? 'border-marsala bg-marsala/5'
-                            : 'border-gray-200 hover:border-marsala/40'
-                        }`}
-                      >
-                        <span className={`font-serif text-2xl font-bold ${config.quantidade === qty ? 'text-marsala' : 'text-gray-700'}`}>
-                          {qty}
-                        </span>
-                        <span className="font-sans text-xs text-gray-500 mt-0.5">unid.</span>
-                        <span className={`font-sans text-sm font-bold mt-1 ${config.quantidade === qty ? 'text-marsala' : 'text-gray-600'}`}>
-                          R$ {product.precos[qty].toFixed(2).replace('.', ',')}
-                        </span>
-                      </button>
-                    )
-                  ))}
-                </div>
-              </div>
-
-              {product.sabores.length > 1 && (
-                <div>
-                  <p className="font-sans text-sm font-bold text-gray-700 mb-2">Sabor</p>
-                  <select
-                    value={config.sabor}
-                    onChange={e => setConfig(c => ({ ...c, sabor: e.target.value }))}
-                    className="input-field"
-                  >
-                    <option value="">Selecione...</option>
-                    {product.sabores.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+              {/* Observação tradicionais */}
+              {product.categoria === 'tradicional' && (
+                <div className="bg-cream rounded-xl p-4 text-xs font-sans text-gray-600 leading-relaxed space-y-2">
+                  <p>
+                    Nossos Docinhos tradicionais são todos artesanais feitos com ingredientes de alta qualidade,
+                    pesam em média 17g. Todos pesados um a um para manter um padrão e qualidade que as formigas merecem!! 🐜
+                  </p>
+                  <p>
+                    <strong className="text-marsala">Embalagens:</strong> Você receberá seu pedido em uma caixa com os docinhos
+                    muito bem organizados e as forminhas nas cores de sua preferência. Caso não solicitado cor no ato da encomenda,
+                    o pedido será enviado nos tons de chocolate e/ou branca.
+                  </p>
                 </div>
               )}
-            </>
-          )}
 
-          {/* === CAIXA MISTA CONFIG === */}
-          {isCaixaModal && (
-            <div>
-              <p className="font-sans text-sm font-bold text-gray-700 mb-1">
-                Escolha {product.numSabores} sabores
-              </p>
-              <p className="font-sans text-xs text-gray-400 mb-3">
-                {config.saboresCaixa.length}/{product.numSabores} selecionados
-              </p>
-              <div className="space-y-2">
-                {product.saboresDisponiveis.map(sabor => (
-                  <button
-                    key={sabor}
-                    onClick={() => toggleSaborCaixa(sabor)}
-                    disabled={!config.saboresCaixa.includes(sabor) && config.saboresCaixa.length >= product.numSabores}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-sm font-sans text-left transition-all ${
-                      config.saboresCaixa.includes(sabor)
-                        ? 'border-marsala bg-marsala/5 text-marsala font-medium'
-                        : 'border-gray-200 text-gray-600 hover:border-marsala/40 disabled:opacity-40 disabled:cursor-not-allowed'
-                    }`}
-                  >
-                    <span className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center ${
-                      config.saboresCaixa.includes(sabor) ? 'bg-marsala border-marsala' : 'border-gray-300'
-                    }`}>
-                      {config.saboresCaixa.includes(sabor) && (
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </span>
-                    {sabor}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer — subtotal + add to cart */}
-        <div className="sticky bottom-0 bg-offwhite border-t border-cream px-6 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-sans text-sm text-gray-500">Subtotal estimado</span>
-            <span className="font-serif text-xl font-bold text-marsala">
-              R$ {subtotal.toFixed(2).replace('.', ',')}
-            </span>
-          </div>
-          <button
-            onClick={handleAddToCart}
-            disabled={!canAddToCart()}
-            className="w-full btn-primary text-base py-3.5"
-          >
-            Adicionar ao Carrinho
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
+              {/* Sabor */}
+              <div>
+                <label htmlFor="doce-sabor" className="block font-sans text-sm font-bold text-gray-700 mb-2">
+                  Sabor *
+                </label>
+                <select
+                  id="doce-sabor"
+                  value={config.sabor}
+                  onChange={e => setConfig(c => ({ ...c, sabor: e.target.value }))}
+                  className="input-field"
+                >
+                  <option value="">Selecione o sabor...</option>
+                  {isDoceEspecial
+                    ? product.saboresComPreco.map(s => (
+               

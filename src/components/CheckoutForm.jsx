@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useCart } from '../store/CartContext'
-import { PICKUP_ADDRESS, WHATSAPP_NUMBER, WEBHOOK_URL, MIN_BUSINESS_DAYS_ADVANCE } from '../data/catalog'
+import { PICKUP_ADDRESS, WHATSAPP_NUMBER, WEBHOOK_URL, MIN_BUSINESS_DAYS_ADVANCE, FRETE_FIXO } from '../data/catalog'
 
 // --- Date helpers ---
 function addBusinessDays(date, days) {
@@ -32,9 +32,21 @@ function formatDatePT(dateStr) {
   return d.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+function removeAccents(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+
+function isAllowedCity(cidade, bairro) {
+  const c = removeAccents((cidade || '').toLowerCase().trim())
+  const b = removeAccents((bairro || '').toLowerCase().trim())
+  const isMaua = c.includes('maua') || c.includes('mauá')
+  const isParqueMarajoara = (c.includes('santo andre') || c.includes('santo andré')) && b.includes('marajoara')
+  return isMaua || isParqueMarajoara
+}
+
 const HORARIOS = [
-  '09:00', '10:00', '11:00', '12:00', '13:00',
-  '14:00', '15:00', '16:00', '17:00', '18:00'
+  { id: '12h-15h', label: '12h às 15h' },
+  { id: '15h-18h', label: '15h às 18h' },
 ]
 
 const PAYMENT_OPTIONS = [
@@ -56,6 +68,7 @@ export default function CheckoutForm() {
     whatsapp: '',
     data: '',
     horario: '',
+    observacaoHorario: '',
     logistica: 'retirada',
     cep: '',
     rua: '',
@@ -71,12 +84,10 @@ export default function CheckoutForm() {
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const selectedDateDay = form.data
-    ? new Date(form.data + 'T12:00:00').getDay()
-    : null
+  const frete = form.logistica === 'entrega' ? FRETE_FIXO : 0
+  const totalComFrete = total + frete
 
-  const isTueFri = selectedDateDay !== null && selectedDateDay >= 2 && selectedDateDay <= 5
-  const isSaturday = selectedDateDay === 6
+  const cidadeInvalida = form.logistica === 'entrega' && form.cidade.trim().length > 0 && !isAllowedCity(form.cidade, form.bairro)
 
   // Step 0 validation
   const step0Valid = form.nome.trim().length >= 2 && form.whatsapp.replace(/\D/g, '').length >= 10
@@ -87,7 +98,8 @@ export default function CheckoutForm() {
     form.data >= minDate &&
     form.horario &&
     (form.logistica === 'retirada' || (
-      form.cep && form.rua && form.numero && form.bairro && form.cidade
+      form.cep && form.rua && form.numero && form.bairro && form.cidade &&
+      !cidadeInvalida
     ))
 
   // Step 2 validation
@@ -103,6 +115,10 @@ export default function CheckoutForm() {
       ? PICKUP_ADDRESS
       : `${form.rua}, ${form.numero}${form.complemento ? `, ${form.complemento}` : ''} — ${form.bairro}, ${form.cidade} — CEP ${form.cep}`
 
+    const horarioLine = form.observacaoHorario
+      ? `${form.horario} (obs: ${form.observacaoHorario})`
+      : form.horario
+
     const msg = `*NOVA ENCOMENDA - CAMILA ANDRADE CONFEITARIA*
 
 *DADOS DO CLIENTE:*
@@ -111,7 +127,7 @@ export default function CheckoutForm() {
 
 *DETALHES DO AGENDAMENTO:*
 • Data: ${formatDatePT(form.data)}
-• Horário: ${form.horario}
+• Horário: ${horarioLine}
 • Modo: ${form.logistica === 'retirada' ? 'Retirada no Ateliê' : 'Entrega em Domicílio'}
 • Endereço/Retirada: ${endereco}
 
@@ -119,7 +135,8 @@ export default function CheckoutForm() {
 ${buildCartSummary()}
 
 *FINANCEIRO:*
-• Total Estimado: R$ ${total.toFixed(2).replace('.', ',')}
+• Subtotal: R$ ${total.toFixed(2).replace('.', ',')}${frete > 0 ? `\n• Frete: R$ ${frete.toFixed(2).replace('.', ',')}` : ''}
+• Total Estimado: R$ ${totalComFrete.toFixed(2).replace('.', ',')}
 • Pagamento Preferencial: ${form.pagamento}
 
 _Estou ciente de que meu pedido só será confirmado após a validação final neste WhatsApp._`
@@ -136,12 +153,15 @@ _Estou ciente de que meu pedido só será confirmado após a validação final n
       Cliente_WhatsApp: form.whatsapp,
       Data_Evento: form.data,
       Horario_Evento: form.horario,
+      Observacao_Horario: form.observacaoHorario,
       Logistica_Tipo: form.logistica === 'retirada' ? 'Retirada' : 'Entrega',
       Endereco_Completo: form.logistica === 'retirada'
         ? PICKUP_ADDRESS
         : `${form.rua}, ${form.numero}, ${form.complemento}, ${form.bairro}, ${form.cidade}, CEP ${form.cep}`,
       Lista_Itens_Carrinho: buildCartSummary(),
-      Total_Pedido: total,
+      Subtotal_Pedido: total,
+      Frete: frete,
+      Total_Pedido: totalComFrete,
       Metodo_Pagamento: form.pagamento,
     }
 
@@ -279,17 +299,6 @@ _Estou ciente de que meu pedido só será confirmado após a validação final n
                 {form.data && !isDisabledDate(form.data) && (
                   <p className="mt-1.5 text-xs text-gray-500">{formatDatePT(form.data)}</p>
                 )}
-                {isTueFri && (
-                  <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                    <p className="font-sans text-xs text-amber-700">
-                      <strong>Atenção:</strong> De Terça a Sexta, produzimos exclusivamente o modelo Padrão Naked Cake.
-                      Pedidos de bolos personalizados em pasta/chantininho estão bloqueados para esta data.
-                    </p>
-                  </div>
-                )}
-                {isSaturday && (
-                  <p className="mt-2 text-xs text-green-600 font-medium">✓ Sábado — todos os designs disponíveis!</p>
-                )}
               </div>
 
               {/* Horário */}
@@ -297,20 +306,32 @@ _Estou ciente de que meu pedido só será confirmado após a validação final n
                 <label className="block font-sans text-sm font-bold text-gray-700 mb-1.5">
                   Horário preferido *
                 </label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {HORARIOS.map(h => (
                     <button
-                      key={h}
-                      onClick={() => setField('horario', h)}
-                      className={`py-2 rounded-lg text-sm font-sans font-medium border-2 transition-all ${
-                        form.horario === h
+                      key={h.id}
+                      onClick={() => setField('horario', h.label)}
+                      className={`py-3 rounded-xl text-sm font-sans font-medium border-2 transition-all ${
+                        form.horario === h.label
                           ? 'border-marsala bg-marsala text-white'
                           : 'border-gray-200 text-gray-600 hover:border-marsala/40'
                       }`}
                     >
-                      {h}
+                      {h.label}
                     </button>
                   ))}
+                </div>
+                <div className="mt-3">
+                  <label className="block font-sans text-xs font-bold text-gray-600 mb-1">
+                    Precisa de horário específico? <span className="font-normal text-gray-400">(opcional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.observacaoHorario}
+                    onChange={e => setField('observacaoHorario', e.target.value)}
+                    placeholder="Ex: preciso receber antes das 14h..."
+                    className="input-field text-sm"
+                  />
                 </div>
               </div>
 
@@ -333,6 +354,9 @@ _Estou ciente de que meu pedido só será confirmado após a validação final n
                     >
                       <span className="text-2xl">{opt.icon}</span>
                       {opt.label}
+                      {opt.id === 'entrega' && (
+                        <span className="text-xs text-gray-400 font-normal">+ R$ {FRETE_FIXO.toFixed(2).replace('.', ',')}</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -378,9 +402,34 @@ _Estou ciente de que meu pedido só será confirmado após a validação final n
                     </div>
                     <div>
                       <label className="block font-sans text-xs font-bold text-gray-600 mb-1">Cidade *</label>
-                      <input type="text" value={form.cidade} onChange={e => setField('cidade', e.target.value)} className="input-field text-sm" />
+                      <input
+                        type="text"
+                        value={form.cidade}
+                        onChange={e => setField('cidade', e.target.value)}
+                        className={`input-field text-sm ${cidadeInvalida ? 'border-red-400 focus:ring-red-300' : ''}`}
+                      />
                     </div>
                   </div>
+
+                  {/* City validation warning */}
+                  {cidadeInvalida && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                      <p className="font-sans text-sm text-red-700 mb-3">
+                        ⚠️ Aparentemente sua região não tem entrega disponível.
+                        Entregamos em <strong>Mauá</strong> e <strong>Parque Marajoara (Santo André)</strong>.
+                        Fale no WhatsApp para validar a informação.
+                      </p>
+                      <a
+                        href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('estava fazendo um pedido da linha festa e meu endereço não entrou.')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-marsala text-white text-sm font-sans font-medium py-2 px-4 rounded-full hover:bg-marsala/90 transition-colors"
+                      >
+                        💬 Verificar pelo WhatsApp
+                      </a>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block font-sans text-xs font-bold text-gray-600 mb-1">Complemento</label>
                     <input type="text" value={form.complemento} onChange={e => setField('complemento', e.target.value)} placeholder="Apto, bloco..." className="input-field text-sm" />
@@ -433,79 +482,16 @@ _Estou ciente de que meu pedido só será confirmado após a validação final n
                   <span className="font-sans text-gray-500">Modo</span>
                   <span className="font-sans text-gray-800 font-medium capitalize">{form.logistica}</span>
                 </div>
-                <div className="border-t border-gold/20 mt-2 pt-2 flex justify-between">
-                  <span className="font-sans font-bold text-gray-700">Total</span>
-                  <span className="font-serif font-bold text-marsala text-xl">R$ {total.toFixed(2).replace('.', ',')}</span>
-                </div>
-              </div>
-
-              {/* Consent checkbox */}
-              <label className="flex items-start gap-3 p-4 bg-white rounded-xl border-2 border-marsala/20 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.ciente}
-                  onChange={e => setField('ciente', e.target.checked)}
-                  className="sr-only"
-                />
-                <span className={`w-5 h-5 rounded border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
-                  form.ciente ? 'bg-marsala border-marsala' : 'border-gray-300'
-                }`}>
-                  {form.ciente && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
+                <div className="border-t border-gold/20 mt-2 pt-2 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-sans text-gray-500">Subtotal</span>
+                    <span className="font-sans text-gray-800">R$ {total.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                  {frete > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="font-sans text-gray-500">Frete</span>
+                      <span className="font-sans text-gray-800">R$ {frete.toFixed(2).replace('.', ',')}</span>
+                    </div>
                   )}
-                </span>
-                <span className="font-sans text-sm text-gray-600 leading-relaxed">
-                  Estou ciente que meu pedido só será confirmado após a validação final e disponibilidade via WhatsApp.
-                </span>
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* Footer navigation */}
-        <div className="sticky bottom-0 bg-offwhite border-t border-cream px-6 py-4">
-          <div className="flex gap-3">
-            {step > 0 && (
-              <button
-                onClick={() => setStep(s => s - 1)}
-                className="btn-outline flex-1 text-sm py-3"
-              >
-                ← Voltar
-              </button>
-            )}
-
-            {step < 2 ? (
-              <button
-                onClick={() => setStep(s => s + 1)}
-                disabled={step === 0 ? !step0Valid : !step1Valid}
-                className="btn-primary flex-1 text-sm py-3"
-              >
-                Avançar →
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={!canSubmit || submitting}
-                className="btn-primary flex-1 text-sm py-3 flex items-center justify-center gap-2"
-              >
-                {submitting ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Enviando...
-                  </>
-                ) : (
-                  <>💬 Finalizar pelo WhatsApp</>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+                  <div className="flex justify-between pt-1">
+                    <span className="font-sans font-bold text-gray-700

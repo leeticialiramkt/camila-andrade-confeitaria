@@ -9,7 +9,7 @@ export default function Header() {
         {/* Logo */}
         <a href="#inicio" aria-label="Camila Andrade Confeitaria - Página inicial">
           <img
-            src="/logo-marsala.png"
+            src="/logo-submake.png"
             alt="Camila Andrade Confeitaria - Logo"
             className="h-12 md:h-14 w-auto object-contain"
           />
