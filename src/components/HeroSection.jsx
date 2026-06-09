@@ -14,7 +14,7 @@ export default function HeroSection() {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/banner-site.png')" }}
         role="img"
-        aria-label="Naked Cakes artesanais da Camila Andrade Confeitaria em Mauá"
+        aria-label="Naked Cakes artesanais da Camila Andrade Confeitaria em Maua"
       />
 
       {/* Dark overlay for text contrast */}
@@ -79,7 +79,12 @@ export default function HeroSection() {
       <button
         onClick={scrollToCatalog}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 hover:text-white transition-colors animate-bounce"
-        aria-label="Rolar para o catálogo"
+        aria-label="Rolar para o catalogo"
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWi
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+    </section>
+  )
+}
