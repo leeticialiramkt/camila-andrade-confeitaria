@@ -494,7 +494,7 @@ _Estou ciente de que meu pedido só será confirmado após a validação final n
                     </div>
                   )}
                   <div className="flex justify-between pt-1">
-                    <span className="font-sans font-bold text-gray-700                    <span className="font-sans font-bold text-gray-700">Total</span>
+                    <span className="font-sans font-bold text-gray-700">Total</span>
                     <span className="font-serif font-bold text-marsala text-xl">R$ {totalComFrete.toFixed(2).replace('.', ',')}</span>
                   </div>
                 </div>
