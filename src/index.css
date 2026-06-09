@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #fffdfa;
+    font-family: 'Lato', Inter, sans-serif;
+    color: #2d2d2d;
+  }
+  h1, h2, h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-marsala text-white font-sans font-bold py-3 px-6 rounded-lg hover:bg-marsala-light transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-outline {
+    @apply border-2 border-marsala text-marsala font-sans font-bold py-3 px-6 rounded-lg hover:bg-marsala hover:text-white transition-all duration-200;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-md overflow-hidden border border-cream hover:shadow-lg transition-shadow duration-200;
+  }
+  .input-field {
+    @apply w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-marsala/30 focus:border-marsala transition-colors bg-white;
+  }
+  .tab-active {
+    @apply bg-marsala text-white;
+  }
+  .tab-inactive {
+    @apply text-marsala bg-white border border-marsala/30 hover:bg-marsala/5;
+  }
+}
+
+/* Smooth scroll */
+html { scroll-behavior: smooth; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #fffdfa; }
+::-webkit-scrollbar-thumb { background: #5c061e; border-radius: 3px; }
