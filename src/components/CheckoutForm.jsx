@@ -494,4 +494,79 @@ _Estou ciente de que meu pedido só será confirmado após a validação final n
                     </div>
                   )}
                   <div className="flex justify-between pt-1">
-                    <span className="font-sans font-bold text-gray-700
+                    <span className="font-sans font-bold text-gray-700                    <span className="font-sans font-bold text-gray-700">Total</span>
+                    <span className="font-serif font-bold text-marsala text-xl">R$ {totalComFrete.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Consent checkbox */}
+              <label className="flex items-start gap-3 p-4 bg-white rounded-2xl border-2 border-marsala/20 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.ciente}
+                  onChange={e => setField('ciente', e.target.checked)}
+                  className="sr-only"
+                />
+                <span className={`w-5 h-5 rounded border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                  form.ciente ? 'bg-marsala border-marsala' : 'border-gray-300'
+                }`}>
+                  {form.ciente && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </span>
+                <span className="font-sans text-sm text-gray-600 leading-relaxed">
+                  Estou ciente que meu pedido só será confirmado após a validação final e disponibilidade via WhatsApp.
+                </span>
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* Footer navigation */}
+        <div className="sticky bottom-0 bg-offwhite border-t border-cream px-6 py-4">
+          <div className="flex gap-3">
+            {step > 0 && (
+              <button
+                onClick={() => setStep(s => s - 1)}
+                className="btn-outline flex-1 text-sm py-3"
+              >
+                ← Voltar
+              </button>
+            )}
+
+            {step < 2 ? (
+              <button
+                onClick={() => setStep(s => s + 1)}
+                disabled={step === 0 ? !step0Valid : !step1Valid}
+                className="btn-primary flex-1 text-sm py-3"
+              >
+                Avançar →
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!canSubmit || submitting}
+                className="btn-primary flex-1 text-sm py-3 flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Enviando...
+                  </>
+                ) : (
+                  <>💬 Finalizar pelo WhatsApp</>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

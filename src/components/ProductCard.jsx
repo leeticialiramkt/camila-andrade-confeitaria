@@ -76,4 +76,32 @@ export default function ProductCard({ product, onConfigure, type }) {
               {getSaboresCount()} sabores disponíveis
             </p>
             <p className="text-xs text-gray-500 line-clamp-2">
-              {getSaboresPreview().slice(0, 4).join(', ')}{getSaboresCount() > 4 ? ' e mais.
+              {getSaboresPreview().slice(0, 4).join(', ')}{getSaboresCount() > 4 ? ' e mais...' : ''}
+            </p>
+          </div>
+        )}
+
+        {/* Price + CTA */}
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-cream">
+          <div>
+            <p className="font-sans text-xs text-gray-400 uppercase tracking-wide">Preço</p>
+            <p className="font-serif text-xl text-marsala font-bold">{getPrice()}</p>
+            {isBoloCard && isBolo1kg && (
+              <p className="font-sans text-xs text-gray-400">15cm · até 8 fatias</p>
+            )}
+            {isBoloCard && !isBolo1kg && (
+              <p className="font-sans text-xs text-gray-400">mín. {product.minKg} kg</p>
+            )}
+          </div>
+          <button
+            onClick={() => onConfigure(product)}
+            className="btn-primary text-sm py-2.5 px-5"
+            aria-label={`Escolher sabores — ${isBoloCard ? 'Linha ' + product.linha : product.nome}`}
+          >
+            Escolher sabores
+          </button>
+        </div>
+      </div>
+    </article>
+  )
+}

@@ -410,4 +410,117 @@ export default function ProductModal({ product, type, onClose }) {
                   <option value="">Selecione o sabor...</option>
                   {isDoceEspecial
                     ? product.saboresComPreco.map(s => (
-               
+                        <option key={s.nome} value={s.nome}>{s.nome}</option>
+                      ))
+                    : product.sabores.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))
+                  }
+                </select>
+              </div>
+
+              {/* Quantidade */}
+              <div>
+                <p className="font-sans text-sm font-bold text-gray-700 mb-3">Quantidade *</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[25, 50, 100].map(qty => {
+                    const preco = docePrecos[qty]
+                    if (!preco) return null
+                    return (
+                      <button
+                        key={qty}
+                        onClick={() => setConfig(c => ({ ...c, quantidade: qty }))}
+                        className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
+                          config.quantidade === qty
+                            ? 'border-marsala bg-marsala/5'
+                            : 'border-gray-200 hover:border-marsala/40'
+                        }`}
+                      >
+                        <span className={`font-serif text-2xl font-bold ${config.quantidade === qty ? 'text-marsala' : 'text-gray-700'}`}>
+                          {qty}
+                        </span>
+                        <span className="font-sans text-xs text-gray-500 mt-0.5">unid.</span>
+                        <span className={`font-sans text-sm font-bold mt-1 ${config.quantidade === qty ? 'text-marsala' : 'text-gray-600'}`}>
+                          R$ {preco.toFixed(2).replace('.', ',')}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Cor das Forminhas */}
+              <div>
+                <label htmlFor="cor-forminhas" className="block font-sans text-sm font-bold text-gray-700 mb-1.5">
+                  Quer escolher a cor das forminhas? <span className="font-normal text-gray-400">(opcional)</span>
+                </label>
+                <input
+                  id="cor-forminhas"
+                  type="text"
+                  value={config.corForminhas}
+                  onChange={e => setConfig(c => ({ ...c, corForminhas: e.target.value }))}
+                  placeholder="Ex: rosa e dourado, azul bebê..."
+                  className="input-field"
+                />
+              </div>
+            </>
+          )}
+
+          {/* === CAIXA MISTA CONFIG === */}
+          {isCaixaModal && (
+            <div>
+              <p className="font-sans text-sm font-bold text-gray-700 mb-1">
+                Escolha {product.numSabores} sabores
+              </p>
+              <p className="font-sans text-xs text-gray-400 mb-3">
+                {config.saboresCaixa.length}/{product.numSabores} selecionados
+              </p>
+              <div className="space-y-2">
+                {product.saboresDisponiveis.map(sabor => (
+                  <button
+                    key={sabor}
+                    onClick={() => toggleSaborCaixa(sabor)}
+                    disabled={!config.saboresCaixa.includes(sabor) && config.saboresCaixa.length >= product.numSabores}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-sm font-sans text-left transition-all ${
+                      config.saboresCaixa.includes(sabor)
+                        ? 'border-marsala bg-marsala/5 text-marsala font-medium'
+                        : 'border-gray-200 text-gray-600 hover:border-marsala/40 disabled:opacity-40 disabled:cursor-not-allowed'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center ${
+                      config.saboresCaixa.includes(sabor) ? 'bg-marsala border-marsala' : 'border-gray-300'
+                    }`}>
+                      {config.saboresCaixa.includes(sabor) && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </span>
+                    {sabor}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer — subtotal + add to cart */}
+        <div className="sticky bottom-0 bg-offwhite border-t border-cream px-6 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-sans text-sm text-gray-500">Subtotal estimado</span>
+            <span className="font-serif text-xl font-bold text-marsala">
+              R$ {precoAtual.toFixed(2).replace('.', ',')}
+            </span>
+          </div>
+          <button
+            onClick={handleAddToCart}
+            disabled={!canAddToCart()}
+            className="w-full btn-primary text-base py-3.5"
+          >
+            Adicionar ao Carrinho
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

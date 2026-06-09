@@ -93,4 +93,36 @@ export default function ProductCatalog({ onConfigure }) {
             <div className="flex-1">
               <h3 className="font-serif text-2xl text-marsala font-semibold mb-2">Kits de Festa</h3>
               <p className="font-sans text-sm text-gray-500 mb-6 leading-relaxed">
-                Caixas mistas com doces artesanais. Escolha a quantidade e
+                Caixas mistas com doces artesanais. Escolha a quantidade e seus sabores favoritos para montar o kit perfeito.
+              </p>
+              <div className="space-y-3">
+                {CAIXAS_MISTAS.map(cx => (
+                  <div
+                    key={cx.id}
+                    className="flex items-center justify-between p-4 bg-white rounded-2xl border-2 border-cream hover:border-marsala/30 transition-all shadow-sm"
+                  >
+                    <div className="flex-1 pr-4">
+                      <p className="font-serif text-base text-marsala font-semibold leading-tight">{cx.nome}</p>
+                      <p className="font-sans text-xs text-gray-500 mt-0.5 leading-relaxed">{cx.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <p className="font-serif text-xl font-bold text-marsala whitespace-nowrap">
+                        R$ {cx.preco.toFixed(2).replace('.', ',')}
+                      </p>
+                      <button
+                        onClick={() => onConfigure(cx, 'caixa')}
+                        className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
+                      >
+                        Escolher sabores
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
